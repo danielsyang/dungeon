@@ -21,6 +21,6 @@ impl Plugin for AssetLoaderPlugin {
 
 fn load_assets(mut scene_assets: ResMut<SceneAsset>, asset_server: Res<AssetServer>) {
     *scene_assets = SceneAsset {
-        player: asset_server.load("player/sprite_1.png"),
+        player: asset_server.load("player.png"),
     }
 }

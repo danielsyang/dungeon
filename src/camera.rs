@@ -5,7 +5,7 @@ use bevy::{
     transform::components::Transform,
 };
 
-const CAMERA_DISTANCE: f32 = 80.0;
+const CAMERA_DISTANCE: f32 = 10.0;
 
 pub struct CameraPlugin;
 

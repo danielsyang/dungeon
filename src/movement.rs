@@ -5,12 +5,19 @@ use bevy::{
         component::Component,
         system::{Query, Res},
     },
-    log::info,
     math::Vec2,
-    sprite::SpriteBundle,
+    sprite::SpriteSheetBundle,
     time::Time,
     transform::components::Transform,
 };
+
+#[derive(Component, Debug)]
+pub enum MovementDirection {
+    Up,
+    Down,
+    Left,
+    Right,
+}
 
 #[derive(Component, Debug)]
 pub struct Velocity {
@@ -25,7 +32,8 @@ impl Velocity {
 
 #[derive(Bundle)]
 pub struct MovementBundle {
-    pub model: SpriteBundle,
+    pub model: SpriteSheetBundle,
+    pub direction: MovementDirection,
     pub velocity: Velocity,
 }
 
