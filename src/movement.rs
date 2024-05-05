@@ -11,12 +11,17 @@ use bevy::{
     transform::components::Transform,
 };
 
-#[derive(Component, Debug)]
-pub enum MovementDirection {
+#[derive(Debug)]
+pub enum PlaneDirection {
     Up,
     Down,
     Left,
     Right,
+}
+
+#[derive(Component, Debug)]
+pub struct MovementDirection {
+    pub value: PlaneDirection,
 }
 
 #[derive(Component, Debug)]
@@ -33,7 +38,6 @@ impl Velocity {
 #[derive(Bundle)]
 pub struct MovementBundle {
     pub model: SpriteSheetBundle,
-    pub direction: MovementDirection,
     pub velocity: Velocity,
 }
 

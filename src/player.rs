@@ -3,7 +3,6 @@ use bevy::{
     asset::Assets,
     ecs::{
         component::Component,
-        query::With,
         system::{Commands, Query, Res, ResMut},
     },
     input::{keyboard::KeyCode, ButtonInput},
@@ -17,7 +16,7 @@ use bevy::{
 
 use crate::{
     asset_loader::SceneAsset,
-    movement::{MovementBundle, MovementDirection, Velocity},
+    movement::{MovementBundle, PlaneDirection, Velocity},
 };
 
 const PLAYER_SPEED: f32 = 20.0;
@@ -32,7 +31,9 @@ struct PlayerAnimationIndices {
 }
 
 #[derive(Debug, Component)]
-pub struct Player;
+pub struct Player {
+    pub direction: PlaneDirection,
+}
 
 pub struct PlayerPlugin;
 
@@ -66,11 +67,12 @@ fn load_player(
                 ..default()
             },
             velocity: Velocity::new(Vec2::ZERO),
-            direction: MovementDirection::Up,
         },
         animation_indices,
         AnimationTimer(Timer::from_seconds(0.1, TimerMode::Repeating)),
-        Player,
+        Player {
+            direction: PlaneDirection::Down,
+        },
     ));
 }
 
@@ -95,22 +97,39 @@ fn animate_sprite_player(
 }
 
 fn player_movement(
-    mut query: Query<&mut Velocity, With<Player>>,
+    mut query: Query<(&mut Velocity, &mut Player, &mut TextureAtlas)>,
     keyboard_input: Res<ButtonInput<KeyCode>>,
 ) {
-    let mut velocity = query.single_mut();
+    let (mut velocity, mut player, mut atlas) = query.single_mut();
     let mut movement_x = 0.0;
     let mut movement_y = 0.0;
+    let mut direction_value: Option<PlaneDirection> = None;
+    let mut index: Option<usize> = None;
 
     if keyboard_input.pressed(KeyCode::KeyW) {
         movement_y = PLAYER_SPEED;
+        direction_value = Some(PlaneDirection::Up);
+        index = Some(12);
     } else if keyboard_input.pressed(KeyCode::KeyS) {
         movement_y = -PLAYER_SPEED;
+        direction_value = Some(PlaneDirection::Down);
+
+        index = Some(0);
     } else if keyboard_input.pressed(KeyCode::KeyA) {
         movement_x = -PLAYER_SPEED;
+        direction_value = Some(PlaneDirection::Left);
     } else if keyboard_input.pressed(KeyCode::KeyD) {
         movement_x = PLAYER_SPEED;
+        direction_value = Some(PlaneDirection::Right);
+        index = Some(6);
     }
 
     velocity.value = Vec2::new(movement_x, movement_y);
+    if let Some(direction_value) = direction_value {
+        player.direction = direction_value;
+    }
+
+    if let Some(index) = index {
+        atlas.index = index;
+    }
 }
