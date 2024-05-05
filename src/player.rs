@@ -1,11 +1,12 @@
 use bevy::{
-    app::{App, Plugin, Startup, Update},
+    app::{App, Plugin, PostStartup, Update},
     asset::Assets,
     ecs::{
         component::Component,
         system::{Commands, Query, Res, ResMut},
     },
     input::{keyboard::KeyCode, ButtonInput},
+    log::info,
     math::{Vec2, Vec3},
     prelude::{Deref, DerefMut},
     sprite::{SpriteSheetBundle, TextureAtlas, TextureAtlasLayout},
@@ -16,7 +17,7 @@ use bevy::{
 
 use crate::{
     asset_loader::SceneAsset,
-    movement::{MovementBundle, PlaneDirection, Velocity},
+    movement::{MovementBundle, Velocity},
 };
 
 const PLAYER_SPEED: f32 = 20.0;
@@ -31,15 +32,13 @@ struct PlayerAnimationIndices {
 }
 
 #[derive(Debug, Component)]
-pub struct Player {
-    pub direction: PlaneDirection,
-}
+pub struct Player;
 
 pub struct PlayerPlugin;
 
 impl Plugin for PlayerPlugin {
     fn build(&self, app: &mut App) {
-        app.add_systems(Startup, load_player)
+        app.add_systems(PostStartup, load_player)
             .add_systems(Update, player_movement)
             .add_systems(Update, animate_sprite_player);
     }
@@ -70,9 +69,7 @@ fn load_player(
         },
         animation_indices,
         AnimationTimer(Timer::from_seconds(0.1, TimerMode::Repeating)),
-        Player {
-            direction: PlaneDirection::Down,
-        },
+        Player,
     ));
 }
 
@@ -88,8 +85,10 @@ fn animate_sprite_player(
         timer.tick(time.delta());
         if timer.just_finished() {
             atlas.index = if atlas.index == indices.last {
+                info!("Animation index: {}", atlas.index);
                 indices.first
             } else {
+                info!("Add Animation index: {}", atlas.index + 1);
                 atlas.index + 1
             };
         }
@@ -97,39 +96,37 @@ fn animate_sprite_player(
 }
 
 fn player_movement(
-    mut query: Query<(&mut Velocity, &mut Player, &mut TextureAtlas)>,
+    mut query: Query<(
+        &mut Velocity,
+        &mut TextureAtlas,
+        &mut PlayerAnimationIndices,
+    )>,
     keyboard_input: Res<ButtonInput<KeyCode>>,
 ) {
-    let (mut velocity, mut player, mut atlas) = query.single_mut();
+    let (mut velocity, mut atlas, mut indices) = query.single_mut();
     let mut movement_x = 0.0;
     let mut movement_y = 0.0;
-    let mut direction_value: Option<PlaneDirection> = None;
     let mut index: Option<usize> = None;
 
     if keyboard_input.pressed(KeyCode::KeyW) {
         movement_y = PLAYER_SPEED;
-        direction_value = Some(PlaneDirection::Up);
         index = Some(12);
     } else if keyboard_input.pressed(KeyCode::KeyS) {
         movement_y = -PLAYER_SPEED;
-        direction_value = Some(PlaneDirection::Down);
-
         index = Some(0);
     } else if keyboard_input.pressed(KeyCode::KeyA) {
         movement_x = -PLAYER_SPEED;
-        direction_value = Some(PlaneDirection::Left);
     } else if keyboard_input.pressed(KeyCode::KeyD) {
         movement_x = PLAYER_SPEED;
-        direction_value = Some(PlaneDirection::Right);
         index = Some(6);
     }
 
     velocity.value = Vec2::new(movement_x, movement_y);
-    if let Some(direction_value) = direction_value {
-        player.direction = direction_value;
-    }
 
     if let Some(index) = index {
+        indices.first = index;
+        indices.last = index + 5;
+
         atlas.index = index;
     }
 }

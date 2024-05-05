@@ -11,18 +11,8 @@ use bevy::{
     transform::components::Transform,
 };
 
-#[derive(Debug)]
-pub enum PlaneDirection {
-    Up,
-    Down,
-    Left,
-    Right,
-}
-
 #[derive(Component, Debug)]
-pub struct MovementDirection {
-    pub value: PlaneDirection,
-}
+pub struct MovementDirection;
 
 #[derive(Component, Debug)]
 pub struct Velocity {
