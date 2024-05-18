@@ -6,10 +6,9 @@ use bevy::{
         system::{Commands, Query, Res, ResMut},
     },
     input::{keyboard::KeyCode, ButtonInput},
-    log::info,
     math::{Vec2, Vec3},
     prelude::{Deref, DerefMut},
-    sprite::{SpriteSheetBundle, TextureAtlas, TextureAtlasLayout},
+    sprite::{Sprite, SpriteSheetBundle, TextureAtlas, TextureAtlasLayout},
     time::{Time, Timer, TimerMode},
     transform::components::Transform,
     utils::default,
@@ -17,10 +16,10 @@ use bevy::{
 
 use crate::{
     asset_loader::SceneAsset,
-    movement::{MovementBundle, Velocity},
+    movement::{Direction, MovementBundle, Velocity},
 };
 
-const PLAYER_SPEED: f32 = 20.0;
+const PLAYER_SPEED: f32 = 40.0;
 
 #[derive(Component, Deref, DerefMut)]
 struct AnimationTimer(Timer);
@@ -40,7 +39,9 @@ impl Plugin for PlayerPlugin {
     fn build(&self, app: &mut App) {
         app.add_systems(PostStartup, load_player)
             .add_systems(Update, player_movement)
-            .add_systems(Update, animate_sprite_player);
+            .add_systems(Update, animate_sprite_player)
+            .add_systems(Update, player_direction)
+            .add_systems(Update, player_idle);
     }
 }
 
@@ -85,48 +86,109 @@ fn animate_sprite_player(
         timer.tick(time.delta());
         if timer.just_finished() {
             atlas.index = if atlas.index == indices.last {
-                info!("Animation index: {}", atlas.index);
                 indices.first
             } else {
-                info!("Add Animation index: {}", atlas.index + 1);
                 atlas.index + 1
             };
         }
     }
 }
 
-fn player_movement(
-    mut query: Query<(
-        &mut Velocity,
-        &mut TextureAtlas,
-        &mut PlayerAnimationIndices,
-    )>,
-    keyboard_input: Res<ButtonInput<KeyCode>>,
-) {
-    let (mut velocity, mut atlas, mut indices) = query.single_mut();
+fn player_movement(mut query: Query<&mut Velocity>, keyboard_input: Res<ButtonInput<KeyCode>>) {
+    let mut velocity = query.single_mut();
     let mut movement_x = 0.0;
     let mut movement_y = 0.0;
-    let mut index: Option<usize> = None;
 
     if keyboard_input.pressed(KeyCode::KeyW) {
         movement_y = PLAYER_SPEED;
-        index = Some(12);
     } else if keyboard_input.pressed(KeyCode::KeyS) {
         movement_y = -PLAYER_SPEED;
-        index = Some(0);
     } else if keyboard_input.pressed(KeyCode::KeyA) {
         movement_x = -PLAYER_SPEED;
     } else if keyboard_input.pressed(KeyCode::KeyD) {
         movement_x = PLAYER_SPEED;
-        index = Some(6);
     }
 
     velocity.value = Vec2::new(movement_x, movement_y);
+}
 
-    if let Some(index) = index {
-        indices.first = index;
-        indices.last = index + 5;
+fn player_direction(
+    mut query: Query<(
+        &mut Velocity,
+        &mut TextureAtlas,
+        &mut PlayerAnimationIndices,
+        &mut Sprite,
+    )>,
+    keyboard_input: Res<ButtonInput<KeyCode>>,
+) {
+    let (mut velocity, mut atlas, mut indices, mut sprite) = query.single_mut();
 
-        atlas.index = index;
+    if keyboard_input.just_pressed(KeyCode::KeyW) && velocity.direction != Some(Direction::Up) {
+        indices.first = 30;
+        atlas.index = 30;
+        indices.last = 35;
+        velocity.direction = Some(Direction::Up);
     }
+
+    if keyboard_input.just_pressed(KeyCode::KeyS) && velocity.direction != Some(Direction::Down) {
+        indices.first = 18;
+        atlas.index = 18;
+        indices.last = 23;
+        velocity.direction = Some(Direction::Down);
+    }
+
+    if keyboard_input.just_pressed(KeyCode::KeyA) && velocity.direction != Some(Direction::Left) {
+        indices.first = 24;
+        atlas.index = 24;
+        indices.last = 29;
+        sprite.flip_x = true;
+        velocity.direction = Some(Direction::Left);
+    }
+
+    if keyboard_input.just_pressed(KeyCode::KeyD) && velocity.direction != Some(Direction::Right) {
+        indices.first = 24;
+        atlas.index = 24;
+        indices.last = 29;
+        sprite.flip_x = false;
+        velocity.direction = Some(Direction::Right);
+    }
+}
+
+fn player_idle(
+    mut query: Query<(
+        &mut Velocity,
+        &mut TextureAtlas,
+        &mut PlayerAnimationIndices,
+        &mut Sprite,
+    )>,
+    keyboard_input: Res<ButtonInput<KeyCode>>,
+) {
+    let (mut velocity, mut atlas, mut indices, mut sprite) = query.single_mut();
+    if keyboard_input.just_released(KeyCode::KeyW) {
+        indices.first = 12;
+        atlas.index = 12;
+        indices.last = 17;
+    }
+
+    if keyboard_input.just_released(KeyCode::KeyS) {
+        indices.first = 0;
+        atlas.index = 0;
+        indices.last = 5;
+    }
+
+    if keyboard_input.just_released(KeyCode::KeyA) {
+        indices.first = 6;
+        atlas.index = 6;
+        indices.last = 11;
+        sprite.flip_x = true;
+    }
+
+    if keyboard_input.just_released(KeyCode::KeyD) {
+        indices.first = 6;
+        atlas.index = 6;
+        indices.last = 11;
+        sprite.flip_x = false;
+    }
+
+    velocity.direction = None;
 }

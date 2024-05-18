@@ -11,17 +11,31 @@ use bevy::{
     transform::components::Transform,
 };
 
+#[derive(Debug, PartialEq)]
+pub enum Direction {
+    Up,
+    Down,
+    Left,
+    Right,
+}
+
 #[derive(Component, Debug)]
-pub struct MovementDirection;
+pub struct MovementDirection {
+    pub value: Direction,
+}
 
 #[derive(Component, Debug)]
 pub struct Velocity {
     pub value: Vec2,
+    pub direction: Option<Direction>,
 }
 
 impl Velocity {
     pub fn new(value: Vec2) -> Self {
-        Self { value }
+        Self {
+            value,
+            direction: Some(Direction::Down),
+        }
     }
 }
 
